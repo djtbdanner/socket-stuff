@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+
+<head>
+    <title>Example</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+        let socket = io.connect(window.location.href);
+        function sendSocket() {
+            const value = document.getElementById(`txt`).value;
+            socket.emit(`io-message`, value);
+        }
+        function sendSocketEveryone() {
+            const value = document.getElementById(`txt`).value;
+            socket.emit(`io-message-everyone`, value);
+        }
+
+        function sendSocketEveryoneElse() {
+            const value = document.getElementById(`txt`).value;
+            socket.emit(`io-message-everyone-else`, value);
+        }
+
+        socket.on('io-message', (data) => {
+            // alert(data);
+            document.getElementById(`txt-r`).value = data;
+        });
+
+    </script>
+</head>
+
+<body>
+    <input type="text" id="txt"></input>
+    <br>
+    <input type="button" onclick="sendSocket()" value="Send-self"></input>
+    <input type="button" onclick="sendSocketEveryone()" value="Send-everyone"></input>
+    <input type="button" onclick="sendSocketEveryoneElse()" value="Send-everyone-else"></input>
+    <br>
+    <input type="text" id="txt-r"></input>
+
+</body>
+
+</html>

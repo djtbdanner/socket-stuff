@@ -1,0 +1,19 @@
+{
+  "name": "example-socket-io",
+  "version": "1.0.0",
+  "description": "just a quick example",
+  "main": "server.js",
+  "scripts": {
+    "go": "nodemon ./socketStuff/socketMain.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "TBD"
+  },
+  "author": "Dave",
+  "license": "ISC",
+  "dependencies": {
+    "nodemon": "^2.0.19",
+    "socket.io": "^4.5.1"
+  }
+}
