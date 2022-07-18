@@ -1,22 +1,61 @@
-function buildTicTacToeHtml() {
+function buildTicTacToeHtml(game) {
+    const thisPlayerSocketId = document.getElementById(`myid`).value;
+    const otherPlayer = game.players.find(p => p.socketId !== thisPlayerSocketId);
+    const thisPlayer = game.players.find(p => p.socketId === thisPlayerSocketId);
+
+
     let html = ``;
     html += `<section>`;
     html += `<h1 class="game--title">Tic Tac Toe</h1>`;
     html += `<div class="game--container">`;
-    for (let i = 1; i < 10; i++) {
-        html += `    <div id="${i}" class="cell" onclick = "selectCell(this)">d</div>`;
+    for (let i = 0; i < 9; i++) {
+        html += `    <div id="${i}" class="cell" onclick = ${thisPlayer.turn ? "selectCell(this)" : "otherPlayersTurn(this)"}>${game.board[i]}</div>`;
     }
     html += `</div>`;
-    html += `<h2 class="game--status"></h2>`;
-    html += `<button class="game--restart" onclick="gameRestart('hello')">Restart Game!</button>`;
+    // html += `<h2 class="game--status"></h2>`;
+
+    let dispTurn = true;
+    if (game.draw) {
+        html += `<p class = "game--status">DRAW</p>`;
+        html += `<button class="game--restart" onclick="initGame('${otherPlayer.socketId}')"">Restart Game!</button>`;
+        dispTurn = false;
+    }
+    if (game.winner) {
+        if (game.winner.socketId === thisPlayerSocketId) {
+            html += `<p class = "game--status">YOU WIN!   &#128526; <p/>`
+        } else {
+            html += `<p class = "game--status">${game.winner.name} WINS!  &#x1F614;<p/>`;
+        }
+        html += `<br/><button class="game--restart" onclick="initGame('${otherPlayer.socketId}')"">Play Again</button>`;
+        dispTurn = false;
+    }
+
+    if (dispTurn) {
+        if (thisPlayer.turn) {
+            html += `<p class = "game--status"> Your turn (as ${thisPlayer.symbol})<p/>`;
+        } else {
+            let otherPlayerName = otherPlayer.name;
+            if (otherPlayerName.endsWith(`s`)) {
+                otherPlayerName += `'`;
+            } else {
+                otherPlayerName += `'s`;
+            }
+            html += `<br/><p class = "game--status" id = "op-name">${otherPlayerName} turn</p><br/>`;
+        }
+    }
     html += `</section>`;
     return html;
 }
 
 function selectCell(element) {
-    element.innerHTML = `X`;
+    let fieldId = element.id;
+    makePlay(fieldId);
 }
 
+function otherPlayersTurn(element) {
+    document.getElementById(`op-name`).classList.add(`twoColor`);
+
+}
 
 function buildNameEntry() {
     let html = ``;
@@ -29,23 +68,26 @@ function buildNameEntry() {
 }
 
 function buildPlayerList(players) {
-    // const thisPlayerSocketId = localStorage.getItem('thisPlayerSocketId');
     const thisPlayerSocketId = document.getElementById(`myid`).value;
     let html = ``;
-    html += `<section id = "player-list-exist">`;
+    html += `<section id = "player-list">`;
     const thisPlayer = players.find((p) => p.socketId === thisPlayerSocketId);
-    if (thisPlayer){
+    if (thisPlayer) {
         html += `<h1> Welcome ${thisPlayer.name}</h1>`
     }
-    
+
     let playerListHtml = ``;
     players.forEach((player) => {
         if (player.socketId !== thisPlayerSocketId) {
             playerListHtml += `<li> <a href="#" onclick = "initGame('${player.socketId}')">${player.name}</a></li>`;
         }
     });
+    if (playerListHtml.length > 2){
     html += `<ul>`
     html += playerListHtml;
+    } else {
+        html += `<br/><p> No other players at this time.</p>`
+    }
     html += `</section>`;
     return html;
 }
