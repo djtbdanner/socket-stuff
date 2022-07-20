@@ -37,7 +37,7 @@ function buildTicTacToeHtml(game) {
             } else {
                 otherPlayerName += `'s`;
             }
-            html += `<br/><p class = "game-status" id = "op-name">${otherPlayerName} turn</p><br/>`;
+            html += `<p class = "game-status" id = "op-name">${otherPlayerName} turn</p>`;
         }
     }
     html += `</section>`;
