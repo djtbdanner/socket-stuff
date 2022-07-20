@@ -21,6 +21,10 @@ async function addPlayer() {
     try {
         const player = {};
         const name = document.getElementById(`name`).value;
+        if (!name || name ===''){
+            alert("Enter name");
+            return;
+        }
         player.name = name;
         const data = await asyncEmit(`add-player`, player);
         const socketId = data.player.socketId;
@@ -30,6 +34,11 @@ async function addPlayer() {
         timeoutOrOtherError(e);
     }
 }
+
+socket.on('other-player-dropped', (data) => {
+    const leavingPlayer = data.leavingPlayer;
+    createAndAppendDiv(buildPlayerList(data.players), `game-div`);
+});
 
 async function makePlay(fieldId) {
     const game = await asyncEmit(`make-play`, fieldId);

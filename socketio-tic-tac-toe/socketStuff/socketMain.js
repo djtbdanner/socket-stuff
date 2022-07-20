@@ -9,16 +9,17 @@ const playersTable = [];
 
 io.sockets.on(`connect`, (socket) => {
     console.log(`io connection, id: ${socket.id}`);
+
     /*
     * Player signs in with name and waits for play
     */
     socket.on('add-player', function (data) {
         try {
-            console.log(`add-player: ${JSON.stringify(data)}`)
-            const playerName = data.name || randomNameGenerator(4);
+            console.log(`add-player: ${JSON.stringify(data)}`);
+            const playerName = data.name || "name";
             const player = addPlayertoPlayers(socket, playerName);
-            socket.emit('add-player', { player, players: getPlayersToPlay() });
-            socket.broadcast.emit(`players-updated`, { players: getPlayersToPlay() });
+            socket.emit('add-player', {player, players: getPlayersToPlay()});
+            socket.broadcast.emit(`players-updated`, {players: getPlayersToPlay()});
         } catch (error) {
             handleError(socket, error, data);
         }
@@ -29,6 +30,7 @@ io.sockets.on(`connect`, (socket) => {
     */
     socket.on('init-game', function (data) {
         try {
+            console.log(`init-game: ${JSON.stringify(data)}`);
             const otherPlayerId = data;
             const player = playersTable.find((p) => p.socketId === socket.id);
             const otherPlayer = playersTable.find((p) => p.socketId === otherPlayerId);
@@ -38,19 +40,19 @@ io.sockets.on(`connect`, (socket) => {
             player.turn = true;
             otherPlayer.symbol = `O`;
             otherPlayer.turn = false;
-            let game = getGameByPlayer(player);
-            if (game){
+            let game = getGameBySocket(socket);
+            if (game) {
                 game.player1 = player;
                 game.player2 = otherPlayer;
-                game.reset();
             }
-            if (!game){
+            if (!game) {
                 game = new Game(player, otherPlayer);
+                gamesTable.push(game);
             }
-            gamesTable.push(game);
+            game.reset();
             socket.emit('init-game', game);
             socket.to(otherPlayerId).emit('init-game-other', game);
-            socket.broadcast.emit(`players-updated`, { players: getPlayersToPlay() });
+            socket.broadcast.emit(`players-updated`, {players: getPlayersToPlay()});
         } catch (error) {
             handleError(socket, error, data);
         }
@@ -61,11 +63,9 @@ io.sockets.on(`connect`, (socket) => {
     */
     socket.on('make-play', function (data) {
         try {
+            console.log(`make-play: ${JSON.stringify(data)}`)
             const fieldId = data;
-            let game = gamesTable.find((g) => g.player1.socketId === socket.id);
-            if (!game) {
-                game = gamesTable.find((g) => g.player2.socketId === socket.id);
-            }
+            let game = getGameBySocket(socket);
             const player = game.players.find((p) => p.socketId === socket.id);
             player.turn = false;
             const otherPlayer = game.players.find((p) => p.socketId !== socket.id);
@@ -76,7 +76,7 @@ io.sockets.on(`connect`, (socket) => {
             if (winner) {
                 game.winner = player;
             }
-            if (!winner && isDraw(game.board)){
+            if (!winner && isDraw(game.board)) {
                 game.draw = true;
             }
             socket.emit('make-play', game);
@@ -89,15 +89,28 @@ io.sockets.on(`connect`, (socket) => {
 
     /*
     * Socket disconnects player no longer playing or waiting for a game.
-    */ 
+    */
     socket.on('disconnect', function (data) {
         try {
-            console.log(`socket ${socket.id} left`);
+            console.log(`socket ${socket.id} disconnected`);
+            if (gamesTable.length > 0) {
+                let game = getGameBySocket(socket);
+                if (game) {
+                    const otherPlayer = game.players.find((p) => p.socketId !== socket.id);
+                    const leavingPlayer = game.players.find((p) => p.socketId === socket.id);
+                    otherPlayer.turn = false;
+                    otherPlayer.playerStatus = otherPlayer.IN_POOL;
+                    const leftOverGames = gamesTable.filter(g => g.id !== game.id);
+                    gamesTable.splice(0);
+                    gamesTable.push(...leftOverGames);
+                    socket.to(otherPlayer.socketId).emit('other-player-dropped', {players: getPlayersToPlay(), leavingPlayer});
+                }
+            }
             if (playersTable.length > 0) {
                 const leftoverPlayers = playersTable.filter(p => p.socketId !== socket.id);
                 playersTable.splice(0);
                 playersTable.push(...leftoverPlayers);
-                socket.broadcast.emit(`players-updated`, { players: getPlayersToPlay() });
+                socket.broadcast.emit(`players-updated`, {players: getPlayersToPlay()});
             }
         } catch (error) {
             handleError(socket, error, data);
@@ -108,15 +121,12 @@ io.sockets.on(`connect`, (socket) => {
 function getPlayersToPlay() {
     const playersToPlay = playersTable.filter((p) => p.playerStatus === p.IN_POOL);
     playersToPlay.sort((a, b) => a.name.localeCompare(b.name));
-    playersToPlay.sort((a, b) => a.name.localeCompare(b.name));
-    console.log(playersToPlay);
     return playersToPlay;
 }
 
 function handleError(socket, error, data) {
     try {
         console.log(`ERROR: ${error} - DATA: ${JSON.stringify(data)} - STACK: ${error.stack}`);
-        console.error(error);
         let errorMessage = `There was an error in processing.`
         if (socket) {
             socket.emit('backendError', errorMessage);
@@ -126,21 +136,8 @@ function handleError(socket, error, data) {
     }
 }
 
-function randomNameGenerator(num) {
-    let res = '';
-    if (!num) {
-        num = 8;
-    }
-    for (let i = 0; i < num; i++) {
-        const random = Math.floor(Math.random() * 26);
-        res += String.fromCharCode(97 + random);
-    };
-    res = res.charAt(0).toUpperCase() + res.slice(1);
-    return res;
-};
-
 function addPlayertoPlayers(socket, playerName) {
-    player = playersTable.find((p) => {
+    let player = playersTable.find((p) => {
         return p.socketId === socket.id;
     });
     if (!player) {
@@ -170,10 +167,10 @@ function isDraw(board) {
     return emptySquares.length === 0;
 }
 
-function getGameByPlayer(player) {
-    let game = gamesTable.find((g) => g.player1.socketId === player.socketId);
+function getGameBySocket(socket) {
+    let game = gamesTable.find((g) => g.player1.socketId === socket.id);
     if (!game) {
-        game = gamesTable.find((g) => g.player2.socketId === player.socketId);
+        game = gamesTable.find((g) => g.player2.socketId === socket.id);
     }
     return game;
 }

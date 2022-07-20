@@ -4,7 +4,8 @@
   "description": "just a quick example",
   "main": "server.js",
   "scripts": {
-    "go": "nodemon ./socketStuff/socketMain.js"
+    "go": "nodemon ./socketStuff/socketMain.js",
+    "test": "jest"
   },
   "repository": {
     "type": "git",
@@ -13,7 +14,9 @@
   "author": "Dave",
   "license": "ISC",
   "dependencies": {
-    "nodemon": "^2.0.19",
     "socket.io": "^4.5.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.19"
   }
 }

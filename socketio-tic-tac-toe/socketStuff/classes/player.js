@@ -1,4 +1,8 @@
 class Player{
+
+    IN_GAME = "inGame";
+    IN_POOL = "inPool";
+
     constructor(name, socketId, status){
         this.socketId = socketId;
         this.name = name;
@@ -11,7 +15,5 @@ class Player{
         this.lastActivity = Date.now();
         this.turn = false;
     }
-    IN_GAME = "inGame";
-    IN_POOL = "inPool";
 }
 module.exports = Player;
