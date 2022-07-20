@@ -32,9 +32,6 @@ httpServer = http.createServer(function (req, res) {
     });
 });
 
-
-// const io = socketio(httpServer);
-
 httpServer.listen(8080, () => {
     console.log(`listing on port 8080`)
 });
